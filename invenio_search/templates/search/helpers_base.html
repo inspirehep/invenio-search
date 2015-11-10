@@ -432,27 +432,3 @@
 {% endblock searchsettings_form %}{% endmacro %}
 
 
-{% macro search_form_javascript(collection) %}{% block search_form_javascript %}
-<script type="text/javascript">
-require(['jquery', 'js/search/form'], function($, searchForm) {
-  var args = {
-    matchingTypes: {
-{%- for v in config.CFG_WEBSEACH_MATCHING_TYPES %}
-      {{ v.code }}: function(val, f) { {{ v.tokenize | safe }} }
-      {{- ',' if not loop.last }}
-{%- endfor %}
-    },
-    keywords: {{ collection.search_within[1:] | tojson | safe }},
-    hintsUrl: '/list/%TYPE?q=%QUERY',
-    defaultSet: 'invenio'
-  };
-{%- for id, soo in collection.search_options | groupby('id_field') %}
-  args.keywords.push(['{{ soo[0].field.code }}', '{{ soo[0].field.code }}']);
-{%- endfor %}
-
-  $(function() {
-    searchForm(args)
-  })
-})
-</script>
-{% endblock search_form_javascript %}{% endmacro %}

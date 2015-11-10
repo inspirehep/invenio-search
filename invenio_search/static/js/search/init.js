@@ -20,12 +20,8 @@
 require(
     [
         "js/search/facets_menu",
-        "js/search/facet",
         "js/search/search",
-        "js/search/facets_filter",
-        "js/search/form",
-        "js/search/search_parser",
-        "js/search/typeahead",
+        "js/search/facets_filter"
     ],
     function() {
         // This file is simply here to make sure the above dependencies are

@@ -136,12 +136,10 @@
     require(["jquery",
              "js/search/facets_filter",
              "js/search/search",
-             "js/search/query_filters_widget",
              "js/search/facets_menu"],
              function($,
                  FacetsFilter,
                  Search,
-                 SearchQueryFiltersWidget,
                  FacetsMenu) {
       var facetsFilter = new FacetsFilter({{ filtered_facets | tojson | safe }});
       var context = {
@@ -156,7 +154,6 @@
         facetsFilter: facetsFilter,
       }
       FacetsMenu.attachTo(context.facetsMenuSelector, context);
-      SearchQueryFiltersWidget.attachTo(context.searchQueryFiltersSelector, context);
       Search.attachTo(document, context);
       $(document).trigger("initSearch");
     });

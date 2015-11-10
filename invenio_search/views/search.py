@@ -203,13 +203,21 @@ def search(collection, p, of, ot, so, sf, sp, rm, rg, jrec):
     collection_breadcrumbs(collection)
 
     response = Query(p).search(collection=collection.name)
+
     response.body.update({
         'size': int(rg),
         'from': jrec-1,
         'aggs': {
-            "collection": {"terms": {"field": "_collections"}},
-            "author": {"terms": {"field": "authors.raw"}},
-        },
+            "author": {"terms": {"field": "exactauthor.raw"}},
+            "experiment": {"terms": {"field": "accelerator_experiments.experiment"}},
+            "year": {
+                "date_histogram" : {
+                    "field" : "earliest_date",
+                    "interval" : "year",
+                    "format": "YYYY"
+                }
+            }
+        }
     })
 
     # FIXME refactor to separate search hook
@@ -220,7 +228,15 @@ def search(collection, p, of, ot, so, sf, sp, rm, rg, jrec):
         post_filter = parsed_post_filter.query.accept(
             ElasticSearchDSL()
         )
-        response.body['post_filter'] = post_filter
+        # response.body['post_filter'] = post_filter
+
+        response.body['query']['bool']['must'].append(post_filter)
+
+        response.body['query'] = {
+            "filtered": {
+                'filter': response.body['query']
+            }
+        }
         # extracting the facet filtering
         from invenio_search.walkers.facets import FacetsVisitor
         filtered_facets = parsed_post_filter.query.accept(

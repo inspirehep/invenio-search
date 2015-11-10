@@ -22,8 +22,9 @@ define([
         'jquery',
         'flight/lib/component',
         'js/search/facets_filter',
+        'js/search/search_results',
 ],
-function($, defineComponent, FacetsFilter) {
+function($, defineComponent, FacetsFilter, SearchResults) {
 
   /**
    * Serialize the given filters as a query.
@@ -115,9 +116,11 @@ function($, defineComponent, FacetsFilter) {
         queryString = setQueryStringParam(queryString,
                                           this.attr.userQueryParam,
                                           userQuery);
+        
+        var filtered_query = queryString.replace(/[^=&]+=(&|$)/g,"").replace(/&$/,"");
         // rebuild the URL
         var path = window.location.origin + window.location.pathname +
-          queryString + window.location.hash;
+              filtered_query + window.location.hash;
 
         window.history.pushState({
           path: path,
@@ -258,8 +261,9 @@ function($, defineComponent, FacetsFilter) {
         data: data,
         context: $(that.attr.searchResultsSelector)
       }).done(function(response) {
-
         $(this).html(response);
+        SearchResults.teardownAll();
+        SearchResults.attachTo(document);
       });
     }
   };
