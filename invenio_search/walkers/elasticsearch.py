@@ -81,6 +81,11 @@ class ElasticSearchDSL(object):
             keyword = self.map_keyword_to_fields(
                 left, getattr(right, '__search_mode__', 'a')
             )
+            if keyword == ['authors.full_name']:
+                from inspirehep.modules.authors.utils import author_tokenize
+                name_variations = author_tokenize(node.right.value)
+                return {"bool": {"must": [{"terms": {"authors.name_variations": name_variations}}], "should": [
+                    {"match": {"authors.full_name": str(node.right.value)}}]}}
             return right(keyword)
         raise RuntimeError("Not supported second level operation.")
 
@@ -120,7 +125,7 @@ class ElasticSearchDSL(object):
     @visitor(DoubleQuotedValue)
     def visit(self, node):
         def _f(keyword):
-            if keyword == ['author']:
+            if keyword == ['authors.full_name']:
                 from inspirehep.modules.authors.utils import author_tokenize
                 name_variations = author_tokenize(node.value)
                 return {"bool": {"must": [{"terms": {"authors.name_variations": name_variations}}], "should": [
