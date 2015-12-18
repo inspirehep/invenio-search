@@ -193,7 +193,7 @@ function($, defineComponent, FacetsFilter, SearchResults) {
         // update the search results
         this.search();
       });
-
+      
       // listen on the "query filter" edition event
       this.on('facetsEdit', function(ev, data) {
         // move the filter query from its static display to the search input.
@@ -218,17 +218,6 @@ function($, defineComponent, FacetsFilter, SearchResults) {
       // listen on popstate, i.e user clicks browser's back or forward button
       this.on(window, 'popstate', function() {
         // reload the page if
-        if (window.history.state === null ||
-            // there is no state for this location
-            window.history.state.facetsFilter === null ||
-            // or if the results set parent element is not here (not returned by
-            // the server) FIXME: always generate the result set?
-            $(this.attr.searchResultsSelector).length === 0 ||
-            // or the user query changed (facets might have changed)
-            window.history.state.userQuery != $('form[name="search"] input[name=p]').val()
-           ) {
-          return window.location.reload();
-        }
         // retrieve the filters from the state
         this.facetsFilter = new FacetsFilter(window.history.state.facetsFilter);
         var userQuery = window.history.state.userQuery;
