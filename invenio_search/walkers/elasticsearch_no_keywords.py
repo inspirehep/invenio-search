@@ -51,7 +51,7 @@ class ElasticSearchNoKeywordsDSL(object):
         return {
             "multi_match": {
                 "message": {
-                    "query": self.values,
+                    "query": str.strip(str(self.values)),
                     "operator": "or",
                     "zero_terms_query": "all",
                     "fields": [
@@ -78,7 +78,7 @@ class ElasticSearchNoKeywordsDSL(object):
         return {
             "multi_match": {
                 "message": {
-                    "query": self.values,
+                    "query": str.strip(str(self.values)),
                     "operator": "or",
                     "zero_terms_query": "all",
                     "fields": [
