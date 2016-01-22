@@ -23,8 +23,9 @@ from invenio_query_parser.ast import (
     AndOp, DoubleQuotedValue, EmptyQuery,
     GreaterEqualOp, GreaterOp, Keyword,
     KeywordOp, LowerEqualOp, LowerOp,
-    NotOp, OrOp, RangeOp, RegexValue,
+    MalformedQuery, NotOp, OrOp, RangeOp, RegexValue,
     SingleQuotedValue, Value, ValueQuery
+
 )
 from invenio_query_parser.visitor import make_visitor
 
@@ -42,6 +43,11 @@ class ElasticSearchNoKeywordsDSL(object):
     @visitor(KeywordOp)
     def visit(self, node, left, right):
         raise QueryHasKeywords()
+
+    @visitor(MalformedQuery)
+    def visit(self, op):
+        # FIXME: Should send signal to display a message to the user.
+        return
 
     @visitor(AndOp)
     def visit(self, node, left, right):
