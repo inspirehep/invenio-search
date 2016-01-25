@@ -30,6 +30,7 @@ from invenio_query_parser.ast import (
 )
 from invenio_query_parser.visitor import make_visitor
 
+from invenio_search.query_suggestions import extra_keywords
 
 class ElasticSearchDSL(object):
 
@@ -65,6 +66,8 @@ class ElasticSearchDSL(object):
 
     @visitor(AndOp)
     def visit(self, node, left, right):
+        if type(node.right) is ValueQuery:
+            extra_keywords.send()
         return {'bool': {'must': [left, right]}}
 
     @visitor(OrOp)
