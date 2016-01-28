@@ -54,7 +54,11 @@ class Query(object):
     @cached_property
     def query(self):
         """Parse query string using given grammar."""
-        tree = pypeg2.parse(self._query, parser(), whitespace="")
+        try:
+            tree = pypeg2.parse(self._query, parser(), whitespace="")
+        except SyntaxError:
+            from invenio_query_parser.ast import MalformedQuery
+            return MalformedQuery("")
         for walker in query_walkers():
             tree = tree.accept(walker)
         return tree
