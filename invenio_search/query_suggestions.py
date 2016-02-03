@@ -21,21 +21,27 @@
 
 from blinker import Namespace
 
-from flask import flash
+from flask import Markup, flash
 
 _signals = Namespace()
 
+unsupported_keyword = _signals.signal('unsupported_keyword')
 malformed_query = _signals.signal('malformed_query')
 extra_keywords = _signals.signal('extra_keywords')
 
 
+@unsupported_keyword.connect
+def unsupported_keyword_message(sender, keyword, *args, **kwargs):
+    flash(Markup(str('<b>' + keyword +
+                     "</b> keyword is currently unsupported.")), "query_suggestion_with_redirect")
+
+
 @malformed_query.connect
 def malformed_query_message(sender):
-    flash("Malformed Query", "query_suggestion")
-    pass
+    flash("Malformed Query. The results may contain unintended results.",
+          "query_suggestion")
 
 
 @extra_keywords.connect
 def extra_keywords_message(sender):
     flash("Extra-keyword Query", "query_suggestion")
-    pass

@@ -30,7 +30,8 @@ from invenio_query_parser.ast import (
 )
 from invenio_query_parser.visitor import make_visitor
 
-from invenio_search.query_suggestions import extra_keywords
+from invenio_search.query_suggestions import extra_keywords, unsupported_keyword
+
 
 class ElasticSearchDSL(object):
 
@@ -80,6 +81,11 @@ class ElasticSearchDSL(object):
 
     @visitor(KeywordOp)
     def visit(self, node, left, right):
+        if str(left) == 'refersto' or str(left) == 'citedby':
+            unsupported_keyword.send(keyword=left)
+            return {
+                "match_all": {}
+            }
         if callable(right):
             keyword = self.map_keyword_to_fields(
                 left, getattr(right, '__search_mode__', 'a')
