@@ -40,9 +40,11 @@ Template hierarchy.
 
 """
 
+import datetime
+
 from flask import (Blueprint, abort, flash, g, jsonify,
                    make_response, redirect, render_template, request,
-                   url_for)
+                   session, url_for)
 from flask_breadcrumbs import (default_breadcrumb_root,
                                register_breadcrumb)
 from flask_login import current_user
@@ -223,13 +225,27 @@ def search(collection, p, of, ot, so, sf, sp, rm, rg, jrec):
         # sets cannot be converted to json. use facetsVisitor to convert them
         # to lists
         filtered_facets = FacetsVisitor.jsonable(filtered_facets)
+    else:
+        # Save current query and number of hits in the user session
+        session_key = 'last-query' + p + collection.name
+        if not session.get(session_key):
+            session[session_key] = {}
 
-    if len(response) and jrec > len(response):
+        session[session_key] = {
+            "p": p,
+            "collection": collection.name,
+            "number_of_hits": len(response),
+            "timestamp": datetime.datetime.utcnow()
+        }
+
+    number_of_hits = len(response)
+
+    if number_of_hits and jrec > number_of_hits:
         args = request.args.copy()
         args['jrec'] = 1
         return redirect(url_for('.search', **args))
 
-    pagination = Pagination((jrec-1) // rg + 1, rg, len(response))
+    pagination = Pagination((jrec-1) // rg + 1, rg, number_of_hits)
 
     ctx = dict(
         facets={},  # facets.get_facets_config(collection, qid),

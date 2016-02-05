@@ -97,8 +97,6 @@ class Query(object):
             for walker in search_walkers():
                 query = query.accept(walker)
 
-        current_app.logger.debug(query)
-
         index = cfg["SEARCH_ELASTIC_COLLECTION_INDEX_MAPPING"].get(
             collection,
             cfg["SEARCH_ELASTIC_DEFAULT_INDEX"]
@@ -149,6 +147,16 @@ class Results(object):
         from invenio_ext.es import es
 
         if self._results is None:
+            if current_app.debug:
+                import json
+                json_body = json.dumps(self.body, indent=2)
+                current_app.logger.debug(
+                    "index: {0} - doc_type: {1} - query: {2}".format(
+                        self.index,
+                        self.doc_type,
+                        json_body
+                    )
+                )
             self._results = es.search(
                 index=self.index,
                 doc_type=self.doc_type,
