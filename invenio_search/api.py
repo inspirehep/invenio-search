@@ -151,9 +151,11 @@ class Results(object):
                 import json
                 json_body = json.dumps(self.body, indent=2)
                 current_app.logger.debug(
-                    "index: {0} - doc_type: {1} - query: {2}".format(self.index,
-                                                                  self.doc_type,
-                                                                  json_body)
+                    "index: {0} - doc_type: {1} - query: {2}".format(
+                        self.index,
+                        self.doc_type,
+                        json_body
+                    )
                 )
             self._results = es.search(
                 index=self.index,
