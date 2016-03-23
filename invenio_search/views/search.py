@@ -141,8 +141,8 @@ def rss(collection, p, jrec, so, rm, rg):
     """Render RSS feed."""
     response = Query(p).search(collection=collection.name)
     response.body.update({
-        'size': rg,
-        'from': jrec-1,
+        'size': int(rg),
+        'from': jrec - 1,
     })
 
     return response_formated_records(
