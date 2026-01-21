@@ -20,10 +20,15 @@ function cleanup() {
 }
 trap cleanup EXIT
 
+echo "PostgreSQL version: ${POSTGRESQL_VERSION:-14}"
+echo "OpenSearch version: ${OPENSEARCH_VERSION:-3.2.0}"
 
-python -m check_manifest
-python -m sphinx.cmd.build -qnN docs docs/_build/html
-eval "$(docker-services-cli up --db ${DB:-postgresql} --search ${SEARCH:-opensearch} --env)"
+eval "$(
+  POSTGRESQL_VERSION="${POSTGRESQL_VERSION:-14}" \
+  OPENSEARCH_VERSION="${OPENSEARCH_VERSION:-3.2.0}" \
+  docker-services-cli up --db "${DB:-postgresql14}" --search "${SEARCH:-opensearch}" --env
+)"
+docker ps --format 'table {{.Names}}\t{{.Image}}'
 python -m pytest
 tests_exit_code=$?
 exit "$tests_exit_code"
