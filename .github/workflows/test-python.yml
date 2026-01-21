@@ -1,0 +1,40 @@
+name: Test Python 3
+
+on:
+  workflow_call:
+
+jobs:
+  tests:
+    name: Tests python 3.11 with PostgreSQL 14 and OpenSearch 3.2
+    runs-on: ubuntu-24.04
+
+    strategy:
+      fail-fast: false
+
+    env:
+      DB: postgresql14
+      SEARCH: opensearch
+      POSTGRESQL_VERSION: "14"
+      OPENSEARCH_VERSION: "3.2.0"
+      EXTRAS: tests,opensearch2
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[$EXTRAS]"
+          pip freeze
+          docker version
+
+      - name: Run tests
+        run: ./run-tests.sh
