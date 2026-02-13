@@ -63,8 +63,10 @@ def test_init(app, template_entrypoints):
         assert len(invenio_search.templates.keys()) == 1
         assert "record-view-{}".format(_get_version()) in invenio_search.templates
 
-    current_search_client.indices.delete_alias("_all", "_all", ignore=[400, 404])
-    current_search_client.indices.delete("*", expand_wildcards="all")
+    current_search_client.indices.delete_alias(
+        index="_all", name="_all", ignore=[400, 404]
+    )
+    current_search_client.indices.delete(index="*", expand_wildcards="all")
     aliases = current_search_client.indices.get_alias()
     assert 0 == len(aliases)
 
@@ -75,7 +77,7 @@ def test_init(app, template_entrypoints):
         result = runner.invoke(cmd, ["init", "--force"], obj=script_info)
         assert result.exit_code == 0
         assert current_search_client.indices.exists_template(
-            "record-view-{}".format(_get_version())
+            name="record-view-{}".format(_get_version())
         )
         assert (
             len(
@@ -85,20 +87,22 @@ def test_init(app, template_entrypoints):
             )
             == 2
         )
-        assert current_search_client.cluster.exists_component_template("record_base")
+        assert current_search_client.cluster.exists_component_template(name="record_base")
 
         assert (
             len(current_search_client.indices.get_index_template()["index_templates"])
             == 1
         )
         assert current_search_client.indices.exists_index_template(
-            "index_template_example"
+            name="index_template_example"
         )
 
     aliases = current_search_client.indices.get_alias()
     assert 8 == sum(len(idx.get("aliases", {})) for idx in aliases.values())
 
-    assert current_search_client.indices.exists(list(invenio_search.mappings.keys()))
+    assert current_search_client.indices.exists(
+        index=list(invenio_search.mappings.keys())
+    )
     # Clean-up:
     result = runner.invoke(cmd, ["destroy"], obj=script_info)
     assert 1 == result.exit_code
@@ -183,7 +187,7 @@ def test_create_put_and_delete(app):
     )
     assert result.exit_code == 0
     assert name in list(
-        current_search_client.indices.get("*", expand_wildcards="all").keys()
+        current_search_client.indices.get(index="*", expand_wildcards="all").keys()
     )
 
     is_OS = SEARCH_DISTRIBUTION == OS
@@ -220,5 +224,5 @@ def test_create_put_and_delete(app):
     )
     assert result.exit_code == 0
     assert name not in list(
-        current_search_client.indices.get("*", expand_wildcards="all").keys()
+        current_search_client.indices.get(index="*", expand_wildcards="all").keys()
     )
