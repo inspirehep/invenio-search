@@ -122,19 +122,31 @@ class _SearchState(object):
         if SEARCH_DISTRIBUTION == ES:
             subfolder = "v{}".format(search_major_version)
         elif SEARCH_DISTRIBUTION == OS:
-            subfolder = "os-v{}".format(search_major_version)
+            requested_subfolder = "os-v{}".format(search_major_version)
+            fallback_subfolders = []
+            if search_major_version >= 3:
+                fallback_subfolders.append("os-v2")
+            fallback_subfolders.append("v7")
 
-            # Make sure that the OpenSearch mappings are in the folder.
-            # The fallback can be removed after transition to OpenSearch.
-            try:
-                resource_listdir(module, subfolder)
-            except FileNotFoundError:
-                # fallback to ES folder with a warning if `os-vx` is not found
+            # Make sure that the OpenSearch mappings are in a supported folder.
+            # Fallback order for OS v3+ is os-vX -> os-v2 -> v7.
+            for candidate in [requested_subfolder] + fallback_subfolders:
+                try:
+                    resource_listdir(module, candidate)
+                    subfolder = candidate
+                    break
+                except FileNotFoundError:
+                    continue
+            else:
                 subfolder = "v7"
+
+            if subfolder != requested_subfolder:
                 warnings.warn(
-                    "OpenSearch v{version} mappings files not found, falling back to Elasticsearch v7 mappings for module {module}. Please add the missing OpenSearch os-v{version} mappings.".format(
+                    "OpenSearch v{version} mappings files not found, falling back to {fallback} mappings for module {module}. Please add the missing OpenSearch {requested} mappings.".format(
                         module=module,
                         version=search_major_version,
+                        requested=requested_subfolder,
+                        fallback=subfolder,
                     )
                 )
         else:
@@ -352,7 +364,7 @@ class _SearchState(object):
             ignore.append(400)
 
         def ensure_not_exists(name):
-            if not ignore_existing and self.client.indices.exists(name):
+            if not ignore_existing and self.client.indices.exists(index=name):
                 raise IndexAlreadyExistsError(
                     'index/alias with name "{}" already exists'.format(name)
                 )
@@ -425,7 +437,7 @@ class _SearchState(object):
         index_alias_name = build_alias_name(index)
 
         # get api returns only dicts
-        index_dict = self.client.indices.get(index_alias_name)
+        index_dict = self.client.indices.get(index=index_alias_name)
         index_keys = list(index_dict.keys())
 
         # make sure only one index exists
