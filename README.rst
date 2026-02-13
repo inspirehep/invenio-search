@@ -15,5 +15,5 @@ To run the test suite locally:
 
     pyenv virtualenv search
     pyenv activate search
-    pip install -e ".[tests,opensearch2]"
+    pip install -e ".[tests,opensearch3]"
     ./run-tests.sh
