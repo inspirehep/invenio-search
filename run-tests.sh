@@ -21,11 +21,11 @@ function cleanup() {
 trap cleanup EXIT
 
 echo "PostgreSQL version: ${POSTGRESQL_VERSION:-14}"
-echo "OpenSearch version: ${OPENSEARCH_VERSION:-3.2.0}"
+echo "OpenSearch version: ${OPENSEARCH_VERSION:-3.9.0}"
 
 eval "$(
   POSTGRESQL_VERSION="${POSTGRESQL_VERSION:-14}" \
-  OPENSEARCH_VERSION="${OPENSEARCH_VERSION:-3.2.0}" \
+  OPENSEARCH_VERSION="${OPENSEARCH_VERSION:-3.9.0}" \
   docker-services-cli up --db "${DB:-postgresql14}" --search "${SEARCH:-opensearch}" --env
 )"
 docker ps --format 'table {{.Names}}\t{{.Image}}'
