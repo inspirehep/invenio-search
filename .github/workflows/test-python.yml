@@ -5,24 +5,15 @@ on:
 
 jobs:
   tests:
-    name: Tests python 3.11 with PostgreSQL 14 and ${{ matrix.client }}
+    name: Tests python 3.11 with PostgreSQL 14 and opensearch3 client
     runs-on: ubuntu-24.04
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - client: opensearch2 client
-            extras: tests,opensearch2
-          - client: opensearch3 client
-            extras: tests,opensearch3
 
     env:
       DB: postgresql14
       SEARCH: opensearch
       POSTGRESQL_VERSION: "14"
-      OPENSEARCH_VERSION: "3.2.0"
-      EXTRAS: ${{ matrix.extras }}
+      OPENSEARCH_VERSION: "3.9.0"
+      EXTRAS: tests,opensearch3
 
     steps:
       - name: Checkout
