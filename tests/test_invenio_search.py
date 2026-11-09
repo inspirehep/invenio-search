@@ -110,38 +110,38 @@ def test_load_entry_point_group(template_entrypoints):
 
         class ep(object):
             name = "records"
-            module_name = "mock_module.mappings"
+            module = "mock_module.mappings"
 
         yield ep
 
     assert len(ext.mappings) == 0
-    with patch("invenio_search.ext.iter_entry_points", mock_entry_points_mappings):
+    with patch("invenio_search.ext.entry_points", mock_entry_points_mappings):
         ext.load_entry_point_group_mappings(entry_point_group_mappings=ep_group)
     assert len(ext.mappings) == 3
 
     with patch(
-        "invenio_search.ext.iter_entry_points",
+        "invenio_search.ext.entry_points",
         return_value=template_entrypoints("invenio_search.templates"),
     ):
         assert set(ext.templates.keys()) == {"record-view-{}".format(_get_version())}
 
 
-def test_os3_mapping_fallback_to_os2():
+def test_os3_mapping_fallback_to_os2(tmp_path, monkeypatch):
     """Test OpenSearch v3 fallback to os-v2 mappings when os-v3 is missing."""
+    package = tmp_path / "fallback_module"
+    for subfolder in ("os-v2", "v7"):
+        (package / "mappings" / subfolder).mkdir(parents=True)
+    (package / "__init__.py").touch()
+    (package / "mappings" / "__init__.py").touch()
+    monkeypatch.syspath_prepend(str(tmp_path))
+
     with patch("invenio_search.ext.SEARCH_DISTRIBUTION", OS), patch(
         "invenio_search.ext.search.VERSION", (3, 0, 0)
-    ), patch("invenio_search.ext.resource_listdir") as mock_listdir:
-
-        def _resource_listdir(module, subfolder):
-            if subfolder == "os-v3":
-                raise FileNotFoundError
-            return []
-
-        mock_listdir.side_effect = _resource_listdir
+    ):
         with pytest.warns(UserWarning):
-            mappings_module = _SearchState._get_mappings_module("mock_module.mappings")
+            mappings_dir = _SearchState._get_mappings_dir("fallback_module.mappings")
 
-        assert mappings_module == "mock_module.mappings.os-v2"
+        assert str(mappings_dir) == str(package / "mappings" / "os-v2")
 
 
 @pytest.mark.parametrize(
@@ -367,7 +367,7 @@ def _test_prefix_templates(app, prefix_value, template_entrypoints):
     app.config["SEARCH_INDEX_PREFIX"] = prefix_value
     search = app.extensions["invenio-search"]
     with patch(
-        "invenio_search.ext.iter_entry_points",
+        "invenio_search.ext.entry_points",
         return_value=template_entrypoints("invenio_search.templates"),
     ):
         # clean-up in case something failed previously

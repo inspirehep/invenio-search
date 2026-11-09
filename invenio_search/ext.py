@@ -14,12 +14,8 @@ import os
 import warnings
 
 import dictdiffer
-from pkg_resources import (
-    iter_entry_points,
-    resource_filename,
-    resource_isdir,
-    resource_listdir,
-)
+from importlib_metadata import entry_points
+from importlib_resources import files
 from werkzeug.utils import cached_property
 
 from . import config
@@ -79,14 +75,14 @@ class _SearchState(object):
         """Load actions from an entry point group."""
         result = []
 
-        for ep in iter_entry_points(group=entrypoint_group):
+        for ep in entry_points(group=entrypoint_group):
             loaded_ep = ep.load()
 
             if callable(loaded_ep):
                 for template_dir in loaded_ep():
                     result.append(self.register_templates(template_dir))
             else:
-                result.append(self.register_templates(ep.module_name))
+                result.append(self.register_templates(ep.module))
 
         templates = {}
         for template in result:
@@ -110,14 +106,17 @@ class _SearchState(object):
         return self._collect_templates(self.entry_point_group_index_templates)
 
     @staticmethod
-    def _get_mappings_module(module):
-        """Resolves the module where to find search mappings/templates.
+    def _get_mappings_dir(module):
+        """Resolves the directory where to find search mappings/templates.
 
-        Finds the module that contains the search mappings/templates based
-        on the current installed search distribution.
+        Finds the versioned sub-directory of ``module`` that contains the
+        search mappings/templates based on the current installed search
+        distribution.
 
         :param module: the module/package name.
+        :returns: an :class:`importlib.resources.abc.Traversable` directory.
         """
+        package_dir = files(module)
         search_major_version = search.VERSION[0]
         if SEARCH_DISTRIBUTION == ES:
             subfolder = "v{}".format(search_major_version)
@@ -131,12 +130,9 @@ class _SearchState(object):
             # Make sure that the OpenSearch mappings are in a supported folder.
             # Fallback order for OS v3+ is os-vX -> os-v(X-1) -> v7.
             for candidate in [requested_subfolder] + fallback_subfolders:
-                try:
-                    resource_listdir(module, candidate)
+                if (package_dir / candidate).is_dir():
                     subfolder = candidate
                     break
-                except FileNotFoundError:
-                    continue
             else:
                 subfolder = "v7"
 
@@ -155,7 +151,7 @@ class _SearchState(object):
                 "Unknown search distribution {}".format(SEARCH_DISTRIBUTION)
             )
 
-        return "{}.{}".format(module, subfolder)
+        return package_dir / subfolder
 
     def register_mappings(self, alias, package_name):
         """Register mappings from a package under given alias.
@@ -163,77 +159,59 @@ class _SearchState(object):
         :param alias: The alias.
         :param package_name: The package name.
         """
-        package_name = self._get_mappings_module(package_name)
+        mappings_dir = self._get_mappings_dir(package_name)
 
-        def _walk_dir(aliases, *parts):
+        def _walk_dir(aliases, directory, *parts):
             root_name = build_index_from_parts(*parts)
-            resource_name = os.path.join(*parts)
-
             data = aliases.get(root_name, {})
 
-            for filename in resource_listdir(package_name, resource_name):
-                file_path = os.path.join(resource_name, filename)
-
-                if resource_isdir(package_name, file_path):
-                    _walk_dir(data, *(parts + (filename,)))
+            for entry in directory.iterdir():
+                if entry.is_dir():
+                    _walk_dir(data, entry, *(parts + (entry.name,)))
                     continue
 
-                filename_root, ext = os.path.splitext(filename)
-                if ext not in {
-                    ".json",
-                }:
+                filename_root, ext = os.path.splitext(entry.name)
+                if ext != ".json":
                     continue
 
                 index_name = build_index_from_parts(*(parts + (filename_root,)))
                 assert index_name not in data, "Duplicate index"
-                filename = resource_filename(
-                    package_name, os.path.join(resource_name, filename)
-                )
-                data[index_name] = filename
-                self.mappings[index_name] = filename
+                data[index_name] = self.mappings[index_name] = str(entry)
 
             aliases[root_name] = data
 
         # Start the recursion here:
-        _walk_dir(self.aliases, alias)
+        _walk_dir(self.aliases, mappings_dir / alias, alias)
 
     def register_templates(self, module):
         """Register templates from the provided module.
 
         :param module: The templates module.
         """
-        module = self._get_mappings_module(module)
+        templates_dir = self._get_mappings_dir(module)
         result = {}
 
-        def _walk_dir(*parts):
-            parts = parts or tuple()
-            resource_name = os.path.join(*parts) if parts else ""
-            for filename in resource_listdir(module, resource_name):
-                file_path = os.path.join(resource_name, filename)
-
-                if resource_isdir(module, file_path):
-                    _walk_dir(*(parts + (filename,)))
+        def _walk_dir(directory, *parts):
+            for entry in directory.iterdir():
+                if entry.is_dir():
+                    _walk_dir(entry, *(parts + (entry.name,)))
                     continue
 
-                filename_root, ext = os.path.splitext(filename)
-                if ext not in {
-                    ".json",
-                }:
+                filename_root, ext = os.path.splitext(entry.name)
+                if ext != ".json":
                     continue
 
                 template_name = build_index_from_parts(*(parts + (filename_root,)))
-                result[template_name] = resource_filename(
-                    module, os.path.join(resource_name, filename)
-                )
+                result[template_name] = str(entry)
 
         # Start the recursion here:
-        _walk_dir()
+        _walk_dir(templates_dir)
         return result
 
     def load_entry_point_group_mappings(self, entry_point_group_mappings):
         """Load actions from an entry point group."""
-        for ep in iter_entry_points(group=entry_point_group_mappings):
-            self.register_mappings(ep.name, ep.module_name)
+        for ep in entry_points(group=entry_point_group_mappings):
+            self.register_mappings(ep.name, ep.module)
 
     def _client_builder(self):
         """Build search engine (ES/OS) client."""

@@ -57,7 +57,7 @@ def test_init(app, template_entrypoints):
     assert 3 == len(invenio_search.mappings)
 
     with patch(
-        "invenio_search.ext.iter_entry_points",
+        "invenio_search.ext.entry_points",
         return_value=template_entrypoints("invenio_search.templates"),
     ):
         assert len(invenio_search.templates.keys()) == 1

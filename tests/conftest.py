@@ -56,16 +56,19 @@ def app(entry_points):
     shutil.rmtree(instance_path)
 
 
-def mock_iter_entry_points_factory(data, mocked_group):
-    """Create a mock iter_entry_points function."""
-    from pkg_resources import iter_entry_points
+def mock_entry_points_factory(data, mocked_group):
+    """Create a mock entry_points function."""
+    from importlib_metadata import entry_points
 
     def entrypoints(group, name=None):
         if group == mocked_group:
             for entrypoint in data:
                 yield entrypoint
         else:
-            for x in iter_entry_points(group=group, name=name):
+            selection = {"group": group}
+            if name is not None:
+                selection["name"] = name
+            for x in entry_points(**selection):
                 yield x
 
     return entrypoints
@@ -80,11 +83,12 @@ def template_entrypoints():
     eps = []
     for idx in range(5):
         event_type_name = "mock_module"
-        from pkg_resources import EntryPoint
+        from unittest.mock import Mock
 
-        entrypoint = EntryPoint(event_type_name, event_type_name)
+        entrypoint = Mock(module=event_type_name)
+        entrypoint.name = event_type_name
         entrypoint.load = lambda: lambda: ["mock_module.templates"]
         eps.append(entrypoint)
 
-    entrypoints = mock_iter_entry_points_factory(eps, "invenio_search.templates")
+    entrypoints = mock_entry_points_factory(eps, "invenio_search.templates")
     return entrypoints
